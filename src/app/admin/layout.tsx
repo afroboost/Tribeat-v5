@@ -13,9 +13,20 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   // Double sécurité : vérification serveur
   const session = await getAuthSession();
 
+  // DEBUG LOGS
+  console.log('========== ADMIN LAYOUT DEBUG ==========');
+  console.log('Session:', JSON.stringify(session, null, 2));
+  console.log('User:', session?.user);
+  console.log('Role:', session?.user?.role);
+  console.log('Is SUPER_ADMIN?', session?.user?.role === 'SUPER_ADMIN');
+  console.log('=======================================');
+
   if (!session || session.user.role !== 'SUPER_ADMIN') {
+    console.log('❌ REDIRECT TO /403 - Not authorized');
     redirect('/403');
   }
+
+  console.log('✅ SUPER_ADMIN AUTHORIZED - Rendering admin layout');
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">

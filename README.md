@@ -31,17 +31,43 @@ Plateforme de sessions live synchronisées pour coachs et participants avec audi
 
 ## 🚀 Démarrage
 
+### Configuration de la Base de Données
+
+**Option 1 : PostgreSQL Production (Supabase/Neon)**
+
+```bash
+# 1. Modifier .env avec votre URL PostgreSQL
+DATABASE_URL="postgresql://user:password@host:5432/tribeat"
+
+# 2. Push du schéma vers la DB
+yarn prisma db push
+
+# 3. Seed des données initiales
+yarn db:seed
+```
+
+**Option 2 : Test Local avec SQLite**
+
+```bash
+# 1. Modifier temporairement prisma/schema.prisma
+# Remplacer: provider = "postgresql"
+# Par: provider = "sqlite"
+
+# 2. Modifier .env
+DATABASE_URL="file:./dev.db"
+
+# 3. Push et seed
+yarn prisma db push
+yarn db:seed
+
+# 4. Restaurer PostgreSQL dans schema.prisma pour production
+```
+
+### Démarrage de l'Application
+
 ```bash
 # Installation des dépendances
 yarn install
-
-# Configuration de la base de données
-# 1. Modifier DATABASE_URL dans .env
-# 2. Créer les tables
-yarn prisma db push
-
-# 3. (Optionnel) Seed des données initiales
-yarn prisma db seed
 
 # Démarrage du serveur de développement
 yarn dev

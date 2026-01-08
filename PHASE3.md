@@ -355,7 +355,18 @@ NEXTAUTH_URL="http://localhost:3000" # Dev
 - [x] AuthProvider intégré
 - [x] Test IDs pour E2E
 - [x] Documentation complète
+- [x] **Dépendances complètes** (react-hook-form, @hookform/resolvers) ✅
 
 ---
 
-**Status :** Phase 3 ✅ Complétée | En attente de validation pour Phase 4
+## 🔧 Correctif Appliqué
+
+**Problème détecté :** Dépendances manquantes (`react-hook-form`, `@hookform/resolvers`)
+**Correctif :** Installation via `yarn add react-hook-form @hookform/resolvers`
+**Status :** ✅ Build 100% clean, aucune erreur
+
+Voir `CORRECTIF_PHASE3.md` pour détails complets.
+
+---
+
+**Status :** Phase 3 ✅ Complétée et Corrigée | En attente de validation pour Phase 4

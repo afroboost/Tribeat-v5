@@ -1,9 +1,8 @@
 /**
  * Dashboard Admin - SUPER_ADMIN UNIQUEMENT
- * Route protégée par middleware
+ * Route protégée par middleware + layout
  */
 
-import { AdminLayout } from '@/components/admin/AdminLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { prisma } from '@/lib/prisma';
 
@@ -17,8 +16,7 @@ export default async function AdminDashboardPage() {
   ]);
 
   return (
-    <AdminLayout>
-      <div className="space-y-6">
+    <div className="space-y-6">
         {/* Welcome Card */}
         <Card>
           <CardHeader>

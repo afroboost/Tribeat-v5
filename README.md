@@ -168,13 +168,15 @@ tribeat/
 
 ## 🎯 Prochaines Phases
 
-### Phase 3 : Authentification
-- [ ] Configuration NextAuth.js
-- [ ] Pages login/register
-- [ ] Protection des routes
-- [ ] Gestion des rôles
-
 ### Phase 4 : Dashboard Admin
+- [ ] Éditeur de thème (couleurs hex, fonts, radius)
+- [ ] Gestion des traductions (FR/EN/DE) en base
+- [ ] CRUD Sessions complètes
+- [ ] Gestion des utilisateurs et rôles
+- [ ] Export données (CSV/JSON)
+- [ ] Statistiques des sessions
+
+### Phase 5 : Sessions Live
 - [ ] Interface admin protégée
 - [ ] Éditeur de thème (couleurs, fonts, radius)
 - [ ] Gestion des traductions (FR/EN/DE)

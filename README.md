@@ -186,15 +186,16 @@ tribeat/
 
 ## 🎯 Prochaines Phases
 
-### Phase 4 : Dashboard Admin
-- [ ] Éditeur de thème (couleurs hex, fonts, radius)
-- [ ] Gestion des traductions (FR/EN/DE) en base
-- [ ] CRUD Sessions complètes
-- [ ] Gestion des utilisateurs et rôles
-- [ ] Export données (CSV/JSON)
-- [ ] Statistiques des sessions
-
 ### Phase 5 : Sessions Live
+- [ ] Page dynamique `/session/[id]`
+- [ ] Intégration Pusher temps réel
+- [ ] Chat en direct avec messages
+- [ ] Liste des participants connectés
+- [ ] Lecteur vidéo/audio synchronisé (Coach = maître)
+- [ ] Contrôles lecture (play/pause/seek)
+- [ ] Latence < 200ms
+
+### Phase 6 : Audio/Vidéo & Synchronisation
 - [ ] Interface admin protégée
 - [ ] Éditeur de thème (couleurs, fonts, radius)
 - [ ] Gestion des traductions (FR/EN/DE)

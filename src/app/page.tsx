@@ -39,20 +39,16 @@ export default async function HomePage() {
             <Link
               href="/auth/login"
               className="px-8 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+              data-testid="home-login-button"
             >
               Se connecter
             </Link>
             <Link
               href="/auth/register"
               className="px-8 py-3 bg-white text-blue-600 border-2 border-blue-600 rounded-lg font-semibold hover:bg-blue-50 transition-colors"
+              data-testid="home-register-button"
             >
               S'inscrire
-            </Link>
-            <Link
-              href="/admin"
-              className="px-8 py-3 bg-gray-800 text-white rounded-lg font-semibold hover:bg-gray-900 transition-colors"
-            >
-              Admin
             </Link>
           </div>
 

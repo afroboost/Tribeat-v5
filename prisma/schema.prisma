@@ -179,6 +179,7 @@ model Translation {
 // ========================================
 
 enum TransactionProvider {
+  MANUAL
   STRIPE
   TWINT
 }

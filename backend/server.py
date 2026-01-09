@@ -1,11 +1,11 @@
 """
 Proxy Backend pour Emergent Platform
-Redirige les requêtes /api/* vers Next.js 3000
+Redirige les requêtes vers Next.js
 """
 import os
 import httpx
 from fastapi import FastAPI, Request
-from fastapi.responses import Response
+from fastapi.responses import Response, JSONResponse
 from starlette.middleware.cors import CORSMiddleware
 
 app = FastAPI()
@@ -20,41 +20,54 @@ app.add_middleware(
 
 NEXTJS_URL = "http://localhost:3000"
 
+@app.get("/health")
+def health():
+    """Health check endpoint"""
+    return {"status": "ok"}
+
 @app.api_route("/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"])
 async def proxy(request: Request, path: str):
-    """Proxy all requests to Next.js"""
+    """Proxy all other requests to Next.js"""
     try:
-        # Remove /api prefix if present (Emergent adds it)
-        clean_path = path
-        
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=30.0) as client:
             # Forward the request to Next.js
-            url = f"{NEXTJS_URL}/{clean_path}"
+            url = f"{NEXTJS_URL}/{path}"
             
             # Get body for non-GET requests
             body = None
             if request.method != "GET":
                 body = await request.body()
             
+            # Forward headers, but remove host
+            headers = dict(request.headers)
+            headers.pop('host', None)
+            
             response = await client.request(
                 method=request.method,
                 url=url,
-                headers=dict(request.headers),
+                headers=headers,
                 content=body,
                 follow_redirects=False,
             )
             
+            # Forward response headers, but filter some
+            response_headers = {}
+            for key, value in response.headers.items():
+                if key.lower() not in ('transfer-encoding', 'content-encoding'):
+                    response_headers[key] = value
+            
             return Response(
                 content=response.content,
                 status_code=response.status_code,
-                headers=dict(response.headers),
+                headers=response_headers,
             )
+    except httpx.TimeoutException:
+        return JSONResponse(
+            content={"error": "Timeout connecting to Next.js"},
+            status_code=504,
+        )
     except Exception as e:
-        return Response(
-            content=str(e),
+        return JSONResponse(
+            content={"error": str(e)},
             status_code=500,
         )
-
-@app.get("/health")
-def health():
-    return {"status": "ok"}

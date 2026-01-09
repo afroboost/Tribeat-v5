@@ -6,7 +6,7 @@
  */
 
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/app/auth-api/[...nextauth]/route';
 import { redirect } from 'next/navigation';
 import { ReactNode } from 'react';
 import { AdminSidebar } from '@/components/admin/AdminSidebar';

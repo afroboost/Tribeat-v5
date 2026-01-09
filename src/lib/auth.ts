@@ -5,7 +5,7 @@
 
 import { UserRole } from '@prisma/client';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/authOptions';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
 /**
  * Redirections par rôle - CENTRALISÉ

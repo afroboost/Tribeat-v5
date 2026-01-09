@@ -38,7 +38,7 @@ export function ExportPanel() {
           break;
       }
 
-      if (result.success) {
+      if (result.success && result.data) {
         // Télécharger le fichier
         const blob = new Blob([result.data], { 
           type: format === 'csv' ? 'text/csv' : 'application/json' 
@@ -46,7 +46,7 @@ export function ExportPanel() {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = result.filename;
+        a.download = result.filename || 'export';
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);

@@ -2,7 +2,7 @@
  * Auth Provider Component
  * Wrapper SessionProvider pour accès session côté client
  * 
- * NOTE: basePath="/auth-api" car /api/* est intercepté par le proxy Kubernetes
+ * NOTE: basePath="/nextauth" car /api/* est intercepté par le proxy Kubernetes
  */
 
 'use client';
@@ -12,7 +12,7 @@ import { ReactNode } from 'react';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   return (
-    <SessionProvider basePath="/auth-api">
+    <SessionProvider basePath="/nextauth">
       {children}
     </SessionProvider>
   );

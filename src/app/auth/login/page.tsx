@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Page de Connexion - NextAuth
+ * Page de Connexion - Production
  */
 
 import { Suspense, useState } from 'react';
@@ -20,7 +20,7 @@ import { Loader2 } from 'lucide-react';
 
 const loginSchema = z.object({
   email: z.string().email('Email invalide'),
-  password: z.string().min(6, 'Mot de passe trop court (min. 6 caractères)'),
+  password: z.string().min(6, 'Mot de passe trop court'),
 });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
@@ -31,7 +31,7 @@ function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const callbackUrl = searchParams.get('callbackUrl') || '/';
+  const callbackUrl = searchParams.get('callbackUrl') || '/sessions';
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -56,12 +56,11 @@ function LoginForm() {
       }
 
       if (result?.ok) {
-        toast.success('Connexion réussie !');
+        toast.success('Connexion réussie');
         router.push(callbackUrl);
         router.refresh();
       }
-    } catch (err) {
-      console.error('Login error:', err);
+    } catch {
       setError('Une erreur est survenue');
       toast.error('Erreur de connexion');
     } finally {
@@ -71,10 +70,10 @@ function LoginForm() {
 
   return (
     <div className="w-full max-w-md">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-8 space-y-6">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-8 space-y-6">
         <div className="text-center space-y-2">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Tribeat</h1>
-          <p className="text-gray-600 dark:text-gray-400">Connexion à votre compte</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Connexion</h1>
+          <p className="text-gray-500 dark:text-gray-400">Accédez à votre espace</p>
         </div>
 
         {error && (
@@ -94,7 +93,7 @@ function LoginForm() {
                   <FormControl>
                     <Input
                       type="email"
-                      placeholder="coach@tribeat.com"
+                      placeholder="votre@email.com"
                       disabled={isLoading}
                       data-testid="login-email-input"
                       {...field}
@@ -143,27 +142,18 @@ function LoginForm() {
           </form>
         </Form>
 
-        <div className="space-y-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+        <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
           <p className="text-center text-sm text-gray-600 dark:text-gray-400">
             Pas encore de compte ?{' '}
             <Link href="/auth/register" className="text-blue-600 hover:underline font-medium">
-              S'inscrire
+              Créer un compte
             </Link>
           </p>
-
-          <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 text-xs text-gray-600 dark:text-gray-400">
-            <p className="font-semibold mb-2">Comptes de démonstration :</p>
-            <ul className="space-y-1">
-              <li>• Admin: admin@tribeat.com / Admin123!</li>
-              <li>• Coach: coach@tribeat.com / Demo123!</li>
-              <li>• Participant: participant@tribeat.com / Demo123!</li>
-            </ul>
-          </div>
         </div>
       </div>
 
       <div className="text-center mt-6">
-        <Link href="/" className="text-sm text-gray-600 dark:text-gray-400 hover:underline">
+        <Link href="/" className="text-sm text-gray-500 dark:text-gray-400 hover:underline">
           ← Retour à l'accueil
         </Link>
       </div>
@@ -173,7 +163,7 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 px-4">
       <Suspense fallback={<Loader2 className="h-8 w-8 animate-spin text-blue-600" />}>
         <LoginForm />
       </Suspense>

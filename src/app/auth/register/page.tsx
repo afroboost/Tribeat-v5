@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Page d'Inscription - NextAuth
+ * Page d'Inscription - Production
  */
 
 import { useState } from 'react';
@@ -20,9 +20,9 @@ import { Loader2 } from 'lucide-react';
 
 const registerSchema = z
   .object({
-    name: z.string().min(2, 'Nom trop court (min. 2 caractères)'),
+    name: z.string().min(2, 'Nom trop court'),
     email: z.string().email('Email invalide'),
-    password: z.string().min(8, 'Mot de passe trop court (min. 8 caractères)'),
+    password: z.string().min(8, 'Minimum 8 caractères'),
     confirmPassword: z.string(),
   })
   .refine((data) => data.password === data.confirmPassword, {
@@ -47,7 +47,6 @@ export default function RegisterPage() {
     setError(null);
 
     try {
-      // Appel API pour créer l'utilisateur
       const response = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -66,9 +65,8 @@ export default function RegisterPage() {
         return;
       }
 
-      toast.success('Compte créé avec succès !');
+      toast.success('Compte créé avec succès');
 
-      // Auto-login
       const loginResult = await signIn('credentials', {
         email: values.email,
         password: values.password,
@@ -79,8 +77,7 @@ export default function RegisterPage() {
         router.push('/sessions');
         router.refresh();
       }
-    } catch (err) {
-      console.error('Register error:', err);
+    } catch {
       setError('Une erreur est survenue');
       toast.error("Erreur d'inscription");
     } finally {
@@ -89,12 +86,12 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 px-4">
       <div className="w-full max-w-md">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-8 space-y-6">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-8 space-y-6">
           <div className="text-center space-y-2">
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Tribeat</h1>
-            <p className="text-gray-600 dark:text-gray-400">Créer un compte</p>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Créer un compte</h1>
+            <p className="text-gray-500 dark:text-gray-400">Rejoignez Tribeat</p>
           </div>
 
           {error && (
@@ -112,7 +109,7 @@ export default function RegisterPage() {
                   <FormItem>
                     <FormLabel>Nom complet</FormLabel>
                     <FormControl>
-                      <Input placeholder="John Doe" disabled={isLoading} data-testid="register-name-input" {...field} />
+                      <Input placeholder="Votre nom" disabled={isLoading} data-testid="register-name-input" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -126,7 +123,7 @@ export default function RegisterPage() {
                   <FormItem>
                     <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input type="email" placeholder="vous@exemple.com" disabled={isLoading} data-testid="register-email-input" {...field} />
+                      <Input type="email" placeholder="votre@email.com" disabled={isLoading} data-testid="register-email-input" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -168,7 +165,7 @@ export default function RegisterPage() {
                     Création...
                   </>
                 ) : (
-                  "S'inscrire"
+                  'Créer mon compte'
                 )}
               </Button>
             </form>
@@ -176,7 +173,7 @@ export default function RegisterPage() {
 
           <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
             <p className="text-center text-sm text-gray-600 dark:text-gray-400">
-              Vous avez déjà un compte ?{' '}
+              Déjà un compte ?{' '}
               <Link href="/auth/login" className="text-blue-600 hover:underline font-medium">
                 Se connecter
               </Link>
@@ -185,7 +182,7 @@ export default function RegisterPage() {
         </div>
 
         <div className="text-center mt-6">
-          <Link href="/" className="text-sm text-gray-600 dark:text-gray-400 hover:underline">
+          <Link href="/" className="text-sm text-gray-500 dark:text-gray-400 hover:underline">
             ← Retour à l'accueil
           </Link>
         </div>

@@ -86,7 +86,7 @@
     }
   ],
   "environment_notes": {
-    "external_preview_url": "https://3263c2b6-2320-4704-91c2-f25eefac1535.preview.emergentagent.com - UNAVAILABLE (agent resting)",
+    "external_preview_url": "https://tribeat-live-1.preview.emergentagent.com - UNAVAILABLE (agent resting)",
     "local_testing_url": "http://localhost:3000 - WORKING",
     "nextjs_server": "Running via supervisor (nextjs process)",
     "database": "SQLite (file:./dev.db) with Prisma"

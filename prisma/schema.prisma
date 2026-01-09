@@ -175,13 +175,35 @@ model Translation {
 }
 
 // ========================================
-// TRANSACTIONS (STRIPE / TWINT)
+// OFFERS (PRODUITS PAYANTS)
+// ========================================
+
+model Offer {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  price       Int      // En centimes (1000 = 10.00 CHF)
+  currency    String   @default("CHF")
+  sessionId   String?  // Lié à une session spécifique (optionnel)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  session      Session?      @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  transactions Transaction[]
+
+  @@index([sessionId])
+  @@index([isActive])
+}
+
+// ========================================
+// TRANSACTIONS (STRIPE / MANUAL)
 // ========================================
 
 enum TransactionProvider {
   MANUAL
   STRIPE
-  TWINT
+  PAYSTACK
 }
 
 enum TransactionStatus {
@@ -194,17 +216,54 @@ enum TransactionStatus {
 model Transaction {
   id              String              @id @default(cuid())
   userId          String
+  offerId         String?
   amount          Int                 // En centimes (ex: 1000 = 10.00 CHF)
   currency        String              @default("CHF")
   provider        TransactionProvider
-  providerTxId    String?             // ID transaction Stripe/Twint
+  providerTxId    String?             // Stripe Session ID / Checkout ID
   status          TransactionStatus   @default(PENDING)
   metadata        Json?               // Données additionnelles
   createdAt       DateTime            @default(now())
   updatedAt       DateTime            @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  offer      Offer?      @relation(fields: [offerId], references: [id], onDelete: SetNull)
+  userAccess UserAccess?
 
   @@index([userId])
+  @@index([offerId])
+  @@index([status])
+  @@index([providerTxId])
+}
+
+// ========================================
+// USER ACCESS (ACCÈS PAYANTS)
+// ========================================
+
+enum AccessStatus {
+  PENDING
+  ACTIVE
+  EXPIRED
+  REVOKED
+}
+
+model UserAccess {
+  id            String       @id @default(cuid())
+  userId        String
+  sessionId     String?      // Accès à une session spécifique
+  offerId       String?      // Lié à une offre
+  transactionId String?      @unique
+  status        AccessStatus @default(PENDING)
+  grantedAt     DateTime     @default(now())
+  expiresAt     DateTime?    // Null = permanent
+  revokedAt     DateTime?
+  revokedBy     String?      // ID admin qui a révoqué
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  session     Session?     @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  transaction Transaction? @relation(fields: [transactionId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([sessionId])
   @@index([status])
 }

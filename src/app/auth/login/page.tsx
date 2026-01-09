@@ -3,16 +3,11 @@
 /**
  * Page de Connexion
  * 
- * Architecture Production :
- * - Validation Zod côté client
- * - Toast notifications (Sonner)
- * - Gestion erreurs NextAuth
- * - Redirection intelligente après login
- * - Design moderne et accessible
+ * Utilise une Server Action personnalisée pour contourner
+ * le problème de proxy /api/* sur la plateforme Emergent
  */
 
 import { Suspense, useState } from 'react';
-import { signIn } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -24,6 +19,7 @@ import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2 } from 'lucide-react';
+import { loginAction } from '@/actions/auth';
 
 // Schéma de validation Zod
 const loginSchema = z.object({
@@ -51,34 +47,36 @@ function LoginForm() {
     },
   });
 
-  // Submit handler
+  // Submit handler utilisant Server Action
   async function onSubmit(values: LoginFormValues) {
     setIsLoading(true);
     setError(null);
 
     try {
-      // Tentative de connexion via NextAuth
-      const result = await signIn('credentials', {
-        email: values.email,
-        password: values.password,
-        redirect: false,
-      });
+      // Utiliser notre Server Action personnalisée
+      const result = await loginAction(values.email, values.password);
 
-      if (result?.error) {
-        // Erreur d'authentification
-        setError('Email ou mot de passe incorrect');
-        toast.error('Échec de la connexion');
+      if (!result.success) {
+        setError(result.error || 'Erreur de connexion');
+        toast.error(result.error || 'Échec de la connexion');
         return;
       }
 
-      if (result?.ok) {
-        // Succès : afficher toast et rediriger
-        toast.success('Connexion réussie !');
-        
-        // Redirection intelligente (géré par NextAuth callback)
-        router.push(callbackUrl);
-        router.refresh();
+      // Succès : rediriger selon le rôle
+      toast.success('Connexion réussie !');
+      
+      // Redirection intelligente selon rôle
+      let redirectUrl = callbackUrl;
+      if (result.user?.role === 'SUPER_ADMIN') {
+        redirectUrl = '/admin/dashboard';
+      } else if (result.user?.role === 'COACH') {
+        redirectUrl = '/coach/dashboard';
+      } else {
+        redirectUrl = '/sessions';
       }
+      
+      router.push(redirectUrl);
+      router.refresh();
     } catch (error) {
       console.error('Login error:', error);
       setError('Une erreur est survenue. Veuillez réessayer.');

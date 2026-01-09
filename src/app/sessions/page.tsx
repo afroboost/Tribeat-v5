@@ -63,7 +63,7 @@ export default async function SessionsPage() {
       </header>
 
       <main className="container mx-auto px-4 py-8">
-        <h2 style={{ color: 'red', fontSize: '20px', fontWeight: 'bold', marginBottom: '16px' }}>RENDER OK — SESSIONS PAGE</h2>
+        
         
         {sessions.length === 0 ? (
           <Card className="max-w-lg mx-auto text-center">

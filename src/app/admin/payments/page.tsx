@@ -32,7 +32,7 @@ export default async function PaymentsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 style={{ color: 'red', fontSize: '24px', fontWeight: 'bold' }}>RENDER OK — PAYMENTS</h1>
+      
       
       <div>
         <h2 className="text-2xl font-bold text-gray-900">Gestion des Paiements</h2>

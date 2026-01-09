@@ -24,7 +24,7 @@ export default async function AdminDashboardPage() {
 
   return (
     <div className="space-y-6">
-      <h1 style={{ color: 'red', fontSize: '24px', fontWeight: 'bold' }}>RENDER OK — DASHBOARD</h1>
+      
       
       <Card>
         <CardHeader>

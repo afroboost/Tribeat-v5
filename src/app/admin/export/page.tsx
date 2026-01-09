@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic';
 export default async function AdminExportPage() {
   return (
     <div className="space-y-6">
-      <h1 style={{ color: 'red', fontSize: '24px', fontWeight: 'bold' }}>RENDER OK — EXPORT</h1>
+      
       
       <div>
         <h2 className="text-3xl font-bold text-gray-900">📥 Export de Données</h2>

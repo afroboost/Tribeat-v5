@@ -20,7 +20,7 @@ export default async function AdminTranslationsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 style={{ color: 'red', fontSize: '24px', fontWeight: 'bold' }}>RENDER OK — TRANSLATIONS</h1>
+      
       
       <div>
         <h2 className="text-3xl font-bold text-gray-900">🌍 Gestion des Traductions</h2>

@@ -1,7 +1,8 @@
 /**
  * Middleware SIMPLIFIÉ
- * Fait UNIQUEMENT : vérifier existence token
- * AUCUNE logique métier, AUCUNE DB
+ * Vérifie UNIQUEMENT l'existence d'un cookie session
+ * NE BLOQUE JAMAIS le render SSR
+ * La vérification du rôle se fait côté client (AdminShell)
  */
 
 import { NextResponse } from 'next/server';
@@ -15,18 +16,17 @@ export function middleware(request: NextRequest) {
     request.cookies.get('next-auth.session-token')?.value ||
     request.cookies.get('__Secure-next-auth.session-token')?.value;
 
-  // Routes admin : token requis
+  // Routes admin : cookie requis (la vérification du rôle se fait côté client)
   if (path.startsWith('/admin')) {
     if (!sessionToken) {
       const loginUrl = new URL('/auth/login', request.url);
       loginUrl.searchParams.set('callbackUrl', path);
       return NextResponse.redirect(loginUrl);
     }
-    // Le rôle sera vérifié côté serveur dans le layout
   }
 
-  // Routes protégées : token requis
-  if (path.startsWith('/sessions') || path.startsWith('/session/')) {
+  // Routes protégées : cookie requis
+  if (path.startsWith('/sessions') || path.match(/^\/session\/[^/]+/)) {
     if (!sessionToken) {
       const loginUrl = new URL('/auth/login', request.url);
       loginUrl.searchParams.set('callbackUrl', path);

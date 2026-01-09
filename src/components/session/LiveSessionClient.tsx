@@ -117,6 +117,7 @@ export function LiveSessionClient({
         participantCount={participantCount + 1} // +1 pour le coach
         isConnected={isConnected}
         connectionError={connectionError}
+        latency={latency}
       />
       
       <div className="grid lg:grid-cols-4 gap-6">

@@ -108,9 +108,10 @@ export async function upsertUISetting(data: z.infer<typeof uiSettingSchema>) {
       create: validatedData,
     });
 
-    // Revalidation cache Next.js
-    revalidatePath('/');
+    // Revalidation cache Next.js - force reload du layout pour les couleurs
+    revalidatePath('/', 'layout');
     revalidatePath('/admin/theme');
+    revalidatePath('/admin');
 
     return { success: true, data: setting };
   } catch (error) {

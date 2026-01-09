@@ -20,7 +20,6 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // FALLBACK CSS - TOUJOURS VISIBLE
   return (
     <html lang="fr" suppressHydrationWarning>
       <body 
@@ -31,6 +30,12 @@ export default function RootLayout({
           minHeight: '100vh'
         }}
       >
+        {/* DEBUG MODE - TEMPORAIRE */}
+        <div style={{ padding: 20, background: "#ffeded", color: "#000", borderBottom: "3px solid #ff0000" }}>
+          <strong>TRIBEAT DEBUG MODE</strong><br />
+          Layout global rendu correctement
+        </div>
+        
         <AuthProvider>
           {children}
           <Toaster position="top-center" richColors />

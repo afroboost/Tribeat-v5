@@ -2,7 +2,7 @@
 
 /**
  * PaymentManager Component
- * Gestion complète des paiements avec support API
+ * Gestion des paiements avec Offers et Transactions
  */
 
 import { useState } from 'react';
@@ -15,13 +15,15 @@ import {
   createManualTransaction, 
   updateTransactionStatus, 
   deleteTransaction,
-  createStripePaymentLink 
+  validateManualTransaction
 } from '@/actions/payments';
-import { Trash2, Plus, CreditCard, CheckCircle, XCircle, Clock, DollarSign } from 'lucide-react';
+import { createOffer, deleteOffer } from '@/actions/offers';
+import { Trash2, Plus, CreditCard, CheckCircle, XCircle, Clock, DollarSign, Package } from 'lucide-react';
 
 interface Transaction {
   id: string;
   userId: string;
+  offerId: string | null;
   amount: number;
   currency: string;
   provider: string;
@@ -29,6 +31,8 @@ interface Transaction {
   status: string;
   createdAt: string;
   user: { id: string; name: string; email: string };
+  offer?: { id: string; name: string } | null;
+  userAccess?: { id: string; status: string } | null;
 }
 
 interface Stats {
@@ -53,38 +57,57 @@ interface PaymentManagerProps {
 export function PaymentManager({ transactions: initialTransactions, stats, users }: PaymentManagerProps) {
   const [transactions, setTransactions] = useState(initialTransactions);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [showOfferForm, setShowOfferForm] = useState(false);
   const [selectedUser, setSelectedUser] = useState('');
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<'MANUAL' | 'STRIPE'>('MANUAL');
+  const [offerName, setOfferName] = useState('');
+  const [offerPrice, setOfferPrice] = useState('');
+  const [offerDescription, setOfferDescription] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleCreate = async () => {
+  // Créer une transaction manuelle
+  const handleCreateManual = async () => {
     if (!selectedUser || !amount) {
-      toast.error('Remplissez tous les champs');
+      toast.error('Sélectionnez un utilisateur et un montant');
       return;
     }
 
     setIsLoading(true);
-    
-    let result;
-    if (paymentMethod === 'STRIPE') {
-      result = await createStripePaymentLink(selectedUser, parseFloat(amount), description);
-    } else {
-      result = await createManualTransaction(selectedUser, parseFloat(amount), 'CHF', 'MANUAL', { description });
-    }
-    
+    const result = await createManualTransaction(
+      selectedUser, 
+      parseFloat(amount), 
+      'CHF',
+      undefined,
+      { description }
+    );
     setIsLoading(false);
 
     if (result.success) {
-      toast.success('Transaction créée');
-      // Refresh would be handled by revalidatePath
+      toast.success('Transaction manuelle créée (PENDING)');
       window.location.reload();
     } else {
       toast.error(result.error || 'Erreur');
     }
   };
 
+  // Valider une transaction manuelle
+  const handleValidate = async (id: string) => {
+    if (!confirm('Valider cette transaction et créer l\'accès ?')) return;
+
+    setIsLoading(true);
+    const result = await validateManualTransaction(id);
+    setIsLoading(false);
+
+    if (result.success) {
+      toast.success('Transaction validée, accès créé');
+      window.location.reload();
+    } else {
+      toast.error(result.error || 'Erreur');
+    }
+  };
+
+  // Mettre à jour le statut
   const handleStatusUpdate = async (id: string, status: string) => {
     setIsLoading(true);
     const result = await updateTransactionStatus(id, status as any);
@@ -100,6 +123,7 @@ export function PaymentManager({ transactions: initialTransactions, stats, users
     }
   };
 
+  // Supprimer une transaction
   const handleDelete = async (id: string) => {
     if (!confirm('Supprimer cette transaction ?')) return;
 
@@ -110,6 +134,28 @@ export function PaymentManager({ transactions: initialTransactions, stats, users
     if (result.success) {
       toast.success('Transaction supprimée');
       setTransactions(transactions.filter(t => t.id !== id));
+    } else {
+      toast.error(result.error || 'Erreur');
+    }
+  };
+
+  // Créer une offre
+  const handleCreateOffer = async () => {
+    if (!offerName || !offerPrice) {
+      toast.error('Nom et prix requis');
+      return;
+    }
+
+    setIsLoading(true);
+    const result = await createOffer(offerName, parseFloat(offerPrice), 'CHF', offerDescription);
+    setIsLoading(false);
+
+    if (result.success) {
+      toast.success('Offre créée');
+      setShowOfferForm(false);
+      setOfferName('');
+      setOfferPrice('');
+      setOfferDescription('');
     } else {
       toast.error(result.error || 'Erreur');
     }
@@ -135,7 +181,7 @@ export function PaymentManager({ transactions: initialTransactions, stats, users
         <Card>
           <CardContent className="pt-6">
             <div className="text-2xl font-bold text-yellow-600">{stats.pending}</div>
-            <p className="text-sm text-gray-500">En attente</p>
+            <p className="text-sm text-gray-500">En attente validation</p>
           </CardContent>
         </Card>
         <Card>
@@ -153,18 +199,72 @@ export function PaymentManager({ transactions: initialTransactions, stats, users
       </div>
 
       {/* Actions */}
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-2">
+        <Button variant="outline" onClick={() => setShowOfferForm(!showOfferForm)}>
+          <Package className="w-4 h-4 mr-2" />
+          Nouvelle offre
+        </Button>
         <Button onClick={() => setShowAddForm(!showAddForm)} data-testid="add-payment-button">
           <Plus className="w-4 h-4 mr-2" />
-          Nouvelle transaction
+          Transaction manuelle
         </Button>
       </div>
 
-      {/* Formulaire */}
+      {/* Formulaire Offre */}
+      {showOfferForm && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Package className="w-5 h-5" />
+              Créer une offre
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Nom de l'offre</label>
+                <Input
+                  value={offerName}
+                  onChange={(e) => setOfferName(e.target.value)}
+                  placeholder="Accès Session Premium"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Prix (CHF)</label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={offerPrice}
+                  onChange={(e) => setOfferPrice(e.target.value)}
+                  placeholder="29.00"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Description</label>
+              <Input
+                value={offerDescription}
+                onChange={(e) => setOfferDescription(e.target.value)}
+                placeholder="Description de l'offre..."
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button onClick={handleCreateOffer} disabled={isLoading}>
+                {isLoading ? 'Création...' : 'Créer l\'offre'}
+              </Button>
+              <Button variant="outline" onClick={() => setShowOfferForm(false)}>
+                Annuler
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Formulaire Transaction Manuelle */}
       {showAddForm && (
         <Card>
           <CardHeader>
-            <CardTitle>Créer une transaction</CardTitle>
+            <CardTitle>Transaction manuelle (validation admin requise)</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid md:grid-cols-2 gap-4">
@@ -186,6 +286,7 @@ export function PaymentManager({ transactions: initialTransactions, stats, users
                 <label className="block text-sm font-medium mb-1">Montant (CHF)</label>
                 <Input
                   type="number"
+                  step="0.01"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
                   placeholder="10.00"
@@ -194,38 +295,17 @@ export function PaymentManager({ transactions: initialTransactions, stats, users
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Description</label>
+              <label className="block text-sm font-medium mb-1">Description / Raison</label>
               <Input
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Accès session..."
+                placeholder="Virement reçu, cash, etc."
                 data-testid="payment-description-input"
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Méthode</label>
-              <div className="flex gap-4">
-                <label className="flex items-center gap-2">
-                  <input
-                    type="radio"
-                    checked={paymentMethod === 'MANUAL'}
-                    onChange={() => setPaymentMethod('MANUAL')}
-                  />
-                  Lien manuel
-                </label>
-                <label className="flex items-center gap-2">
-                  <input
-                    type="radio"
-                    checked={paymentMethod === 'STRIPE'}
-                    onChange={() => setPaymentMethod('STRIPE')}
-                  />
-                  Stripe API
-                </label>
-              </div>
-            </div>
             <div className="flex gap-2">
-              <Button onClick={handleCreate} disabled={isLoading} data-testid="confirm-payment">
-                {isLoading ? 'Création...' : 'Créer'}
+              <Button onClick={handleCreateManual} disabled={isLoading} data-testid="confirm-payment">
+                {isLoading ? 'Création...' : 'Créer (PENDING)'}
               </Button>
               <Button variant="outline" onClick={() => setShowAddForm(false)}>
                 Annuler
@@ -252,9 +332,11 @@ export function PaymentManager({ transactions: initialTransactions, stats, users
                 <thead>
                   <tr className="border-b">
                     <th className="text-left p-3 font-medium">Utilisateur</th>
+                    <th className="text-left p-3 font-medium">Offre</th>
                     <th className="text-left p-3 font-medium">Montant</th>
                     <th className="text-left p-3 font-medium">Provider</th>
                     <th className="text-left p-3 font-medium">Statut</th>
+                    <th className="text-left p-3 font-medium">Accès</th>
                     <th className="text-left p-3 font-medium">Date</th>
                     <th className="text-right p-3 font-medium">Actions</th>
                   </tr>
@@ -262,36 +344,56 @@ export function PaymentManager({ transactions: initialTransactions, stats, users
                 <tbody>
                   {transactions.map((tx) => {
                     const status = statusConfig[tx.status] || statusConfig.PENDING;
-                    const StatusIcon = status.icon;
                     return (
-                      <tr key={tx.id} className="border-b hover:bg-gray-50 dark:hover:bg-gray-800">
+                      <tr key={tx.id} className="border-b hover:bg-gray-50">
                         <td className="p-3">
                           <p className="font-medium">{tx.user.name}</p>
                           <p className="text-sm text-gray-500">{tx.user.email}</p>
+                        </td>
+                        <td className="p-3">
+                          {tx.offer ? (
+                            <Badge variant="outline">{tx.offer.name}</Badge>
+                          ) : (
+                            <span className="text-gray-400 text-sm">-</span>
+                          )}
                         </td>
                         <td className="p-3 font-mono">
                           {(tx.amount / 100).toFixed(2)} {tx.currency}
                         </td>
                         <td className="p-3">
-                          <Badge variant="outline">{tx.provider}</Badge>
+                          <Badge variant={tx.provider === 'STRIPE' ? 'default' : 'secondary'}>
+                            {tx.provider}
+                          </Badge>
                         </td>
                         <td className="p-3">
-                          <select
-                            value={tx.status}
-                            onChange={(e) => handleStatusUpdate(tx.id, e.target.value)}
-                            className={`p-1 rounded text-sm ${status.color}`}
-                            data-testid={`status-${tx.id}`}
-                          >
-                            <option value="PENDING">En attente</option>
-                            <option value="COMPLETED">Complété</option>
-                            <option value="FAILED">Échoué</option>
-                            <option value="REFUNDED">Remboursé</option>
-                          </select>
+                          <span className={`px-2 py-1 rounded text-sm ${status.color}`}>
+                            {status.label}
+                          </span>
+                        </td>
+                        <td className="p-3">
+                          {tx.userAccess ? (
+                            <Badge variant={tx.userAccess.status === 'ACTIVE' ? 'default' : 'secondary'}>
+                              {tx.userAccess.status}
+                            </Badge>
+                          ) : (
+                            <span className="text-gray-400 text-sm">Aucun</span>
+                          )}
                         </td>
                         <td className="p-3 text-sm text-gray-500">
                           {new Date(tx.createdAt).toLocaleDateString('fr-FR')}
                         </td>
-                        <td className="p-3 text-right">
+                        <td className="p-3 text-right space-x-1">
+                          {tx.status === 'PENDING' && tx.provider === 'MANUAL' && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleValidate(tx.id)}
+                              className="text-green-600"
+                              title="Valider et créer l'accès"
+                            >
+                              <CheckCircle className="w-4 h-4" />
+                            </Button>
+                          )}
                           <Button
                             variant="ghost"
                             size="sm"
@@ -312,12 +414,13 @@ export function PaymentManager({ transactions: initialTransactions, stats, users
         </CardContent>
       </Card>
 
-      {/* Note API */}
-      <Card className="bg-blue-50 dark:bg-blue-900/20 border-blue-200">
+      {/* Note Stripe */}
+      <Card className="bg-blue-50 border-blue-200">
         <CardContent className="pt-6">
-          <h4 className="font-semibold text-blue-800 dark:text-blue-200">Configuration API</h4>
-          <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
-            Pour activer les paiements Stripe automatiques, configurez <code className="bg-blue-100 px-1 rounded">STRIPE_SECRET_KEY</code> dans les variables d'environnement.
+          <h4 className="font-semibold text-blue-800">✅ Stripe configuré</h4>
+          <p className="text-sm text-blue-700 mt-1">
+            Les paiements Stripe sont actifs. Les utilisateurs peuvent payer via les offres publiques.
+            Les transactions manuelles nécessitent une validation admin.
           </p>
         </CardContent>
       </Card>

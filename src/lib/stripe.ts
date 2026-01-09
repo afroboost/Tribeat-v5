@@ -1,0 +1,24 @@
+/**
+ * Stripe Configuration - Server-side only
+ */
+
+import Stripe from 'stripe';
+
+const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+
+if (!stripeSecretKey) {
+  console.warn('STRIPE_SECRET_KEY not configured - payments will be in manual mode');
+}
+
+export const stripe = stripeSecretKey
+  ? new Stripe(stripeSecretKey, {
+      apiVersion: '2025-04-30.basil',
+      typescript: true,
+    })
+  : null;
+
+export const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET || '';
+
+export function isStripeConfigured(): boolean {
+  return !!stripe;
+}

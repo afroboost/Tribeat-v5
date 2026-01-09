@@ -5,18 +5,22 @@
  * - Connexion temps réel (Pusher)
  * - AudioEngine
  * - UI Coach vs Participant
+ * 
+ * ARCHITECTURE PRODUCTION:
+ * - État persisté en DB
+ * - Broadcast via Pusher
+ * - Auth sécurisée
  */
 
 'use client';
 
-import { useEffect, useState } from 'react';
 import { useLiveSession } from '@/hooks/useLiveSession';
 import { LiveStatus } from './LiveStatus';
 import { CoachControls } from './CoachControls';
 import { ParticipantPlayer } from './ParticipantPlayer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { User, Users, AlertCircle } from 'lucide-react';
+import { User, Users, AlertCircle, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Participant {
@@ -57,16 +61,15 @@ export function LiveSessionClient({
   currentUserRole,
 }: LiveSessionClientProps) {
   
-  // Déterminer le rôle de l'utilisateur pour cette session
-  const isCoach = coach.id === currentUserId || currentUserRole === 'SUPER_ADMIN';
-  const userRole = isCoach ? 'COACH' : 'PARTICIPANT';
+  // Déterminer le rôle
+  const isCoachUser = coach.id === currentUserId || currentUserRole === 'SUPER_ADMIN';
+  const userRole = isCoachUser ? 'COACH' : 'PARTICIPANT';
   
-  // Hook temps réel
+  // Hook temps réel (Pusher + DB)
   const {
     isConnected,
     connectionError,
-    latency,
-    sessionState,
+    liveState,
     audioState,
     participants: liveParticipants,
     participantCount,
@@ -75,16 +78,18 @@ export function LiveSessionClient({
     seek,
     setVolume,
     endSession,
+    refreshState,
+    isCoach,
   } = useLiveSession({
     sessionId,
     userId: currentUserId,
-    userName: coach.id === currentUserId ? coach.name : 'Participant',
+    userName: isCoachUser ? coach.name : 'Participant',
     userRole: userRole as 'COACH' | 'PARTICIPANT',
     mediaUrl,
     onError: (error) => toast.error(error),
   });
   
-  // Combiner participants initiaux et live
+  // Combiner participants
   const allParticipants = liveParticipants.length > 0 
     ? liveParticipants 
     : initialParticipants.map(p => ({
@@ -94,14 +99,13 @@ export function LiveSessionClient({
       }));
   
   // État dérivé
-  const currentStatus = sessionState?.status || 
-    (sessionStatus === 'LIVE' ? 'LIVE' : 
-     sessionStatus === 'COMPLETED' ? 'ENDED' : 'PAUSED');
+  const currentStatus = sessionStatus === 'COMPLETED' ? 'ENDED' : 
+                        liveState?.isPlaying ? 'LIVE' : 'PAUSED';
   
-  const isPlaying = sessionState?.isPlaying || false;
-  const volume = sessionState?.volume || 80;
+  const isPlaying = liveState?.isPlaying || false;
+  const volume = liveState?.volume || 80;
   
-  // Handler fin de session avec confirmation
+  // Handler fin de session
   const handleEndSession = async () => {
     if (confirm('Êtes-vous sûr de vouloir terminer cette session ?')) {
       await endSession();
@@ -112,13 +116,25 @@ export function LiveSessionClient({
   return (
     <div className="space-y-6" data-testid="live-session-container">
       {/* Status Bar */}
-      <LiveStatus
-        status={currentStatus}
-        participantCount={participantCount + 1} // +1 pour le coach
-        isConnected={isConnected}
-        connectionError={connectionError}
-        latency={latency}
-      />
+      <div className="flex items-center justify-between">
+        <LiveStatus
+          status={currentStatus}
+          participantCount={participantCount + 1}
+          isConnected={isConnected}
+          connectionError={connectionError}
+        />
+        
+        {/* Bouton refresh état */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={refreshState}
+          className="text-gray-400 hover:text-white"
+          title="Rafraîchir l'état depuis le serveur"
+        >
+          <RefreshCw className="w-4 h-4" />
+        </Button>
+      </div>
       
       <div className="grid lg:grid-cols-4 gap-6">
         {/* Zone principale */}
@@ -137,7 +153,7 @@ export function LiveSessionClient({
                   </div>
                 ) : (
                   <div className="text-center text-white p-8">
-                    {/* Visualisation audio simple */}
+                    {/* Visualisation audio */}
                     <div className={`w-32 h-32 mx-auto mb-4 rounded-full flex items-center justify-center transition-all ${
                       isPlaying 
                         ? 'bg-blue-600/30 scale-110' 
@@ -236,26 +252,28 @@ export function LiveSessionClient({
               
               {/* Participants */}
               {allParticipants.length > 0 ? (
-                allParticipants.map((p) => (
-                  <div 
-                    key={p.id} 
-                    className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-700/30"
-                  >
-                    <div className="w-8 h-8 bg-gray-600 rounded-full flex items-center justify-center">
-                      <User className="w-4 h-4 text-gray-300" />
+                allParticipants
+                  .filter(p => p.id !== coach.id)
+                  .map((p) => (
+                    <div 
+                      key={p.id} 
+                      className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-700/30"
+                    >
+                      <div className="w-8 h-8 bg-gray-600 rounded-full flex items-center justify-center">
+                        <User className="w-4 h-4 text-gray-300" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-white truncate">
+                          {p.name}
+                          {p.id === currentUserId && ' (vous)'}
+                        </p>
+                      </div>
+                      <div className="w-2 h-2 bg-green-500 rounded-full" title="En ligne" />
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-white truncate">
-                        {p.name}
-                        {p.id === currentUserId && ' (vous)'}
-                      </p>
-                    </div>
-                    <div className="w-2 h-2 bg-green-500 rounded-full" title="En ligne" />
-                  </div>
-                ))
+                  ))
               ) : (
                 <p className="text-sm text-gray-400 text-center py-4">
-                  Aucun participant
+                  Aucun autre participant
                 </p>
               )}
             </CardContent>
@@ -266,10 +284,13 @@ export function LiveSessionClient({
             <CardContent className="py-4">
               <p className="text-xs text-gray-400 text-center">
                 {isCoach ? (
-                  <>Vous êtes le <span className="text-blue-400 font-medium">Coach</span> de cette session</>
+                  <>Vous êtes le <span className="text-blue-400 font-medium">Coach</span></>
                 ) : (
                   <>Vous êtes <span className="text-green-400 font-medium">Participant</span></>
                 )}
+              </p>
+              <p className="text-xs text-gray-500 text-center mt-1">
+                État persisté • Pusher
               </p>
             </CardContent>
           </Card>

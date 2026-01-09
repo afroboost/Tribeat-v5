@@ -1,71 +1,64 @@
 /**
- * Middleware - Protection des routes
- * Auth centralisée ici, PAS dans les layouts
+ * Middleware - Protection des routes admin
+ * Redirige vers login si pas authentifié
  */
 
-import { withAuth } from 'next-auth/middleware';
+import { getToken } from 'next-auth/jwt';
 import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
 
-export default withAuth(
-  function middleware(req) {
-    const token = req.nextauth.token;
-    const path = req.nextUrl.pathname;
+export async function middleware(request: NextRequest) {
+  const path = request.nextUrl.pathname;
+  
+  // Récupérer le token JWT
+  const token = await getToken({ 
+    req: request,
+    secret: process.env.NEXTAUTH_SECRET || 'tribeat-super-secret-key-change-in-prod',
+  });
 
-    // Protection admin : SUPER_ADMIN uniquement
-    if (path.startsWith('/admin')) {
-      if (!token) {
-        return NextResponse.redirect(new URL('/auth/login?callbackUrl=' + encodeURIComponent(path), req.url));
-      }
-      if (token.role !== 'SUPER_ADMIN') {
-        return NextResponse.redirect(new URL('/403', req.url));
-      }
+  // Routes admin protégées
+  if (path.startsWith('/admin')) {
+    if (!token) {
+      const loginUrl = new URL('/auth/login', request.url);
+      loginUrl.searchParams.set('callbackUrl', path);
+      return NextResponse.redirect(loginUrl);
     }
-
-    // Protection coach dashboard
-    if (path.startsWith('/coach')) {
-      if (!token) {
-        return NextResponse.redirect(new URL('/auth/login?callbackUrl=' + encodeURIComponent(path), req.url));
-      }
-      if (token.role !== 'COACH' && token.role !== 'SUPER_ADMIN') {
-        return NextResponse.redirect(new URL('/403', req.url));
-      }
+    
+    // Vérifier le rôle SUPER_ADMIN
+    if (token.role !== 'SUPER_ADMIN') {
+      return NextResponse.redirect(new URL('/403', request.url));
     }
-
-    // Protection sessions (utilisateur connecté)
-    if (path.startsWith('/sessions') || path.startsWith('/session/')) {
-      if (!token) {
-        return NextResponse.redirect(new URL('/auth/login?callbackUrl=' + encodeURIComponent(path), req.url));
-      }
-    }
-
-    return NextResponse.next();
-  },
-  {
-    callbacks: {
-      authorized: ({ token, req }) => {
-        const path = req.nextUrl.pathname;
-        
-        // Routes publiques - toujours autorisées
-        if (
-          path === '/' ||
-          path.startsWith('/auth') ||
-          path.startsWith('/api') ||
-          path === '/403'
-        ) {
-          return true;
-        }
-        
-        // Routes protégées - token requis
-        return !!token;
-      },
-    },
   }
-);
+
+  // Routes coach protégées
+  if (path.startsWith('/coach')) {
+    if (!token) {
+      const loginUrl = new URL('/auth/login', request.url);
+      loginUrl.searchParams.set('callbackUrl', path);
+      return NextResponse.redirect(loginUrl);
+    }
+    
+    if (token.role !== 'COACH' && token.role !== 'SUPER_ADMIN') {
+      return NextResponse.redirect(new URL('/403', request.url));
+    }
+  }
+
+  // Routes sessions protégées (user connecté)
+  if (path.startsWith('/sessions') || path.match(/^\/session\/[^/]+$/)) {
+    if (!token) {
+      const loginUrl = new URL('/auth/login', request.url);
+      loginUrl.searchParams.set('callbackUrl', path);
+      return NextResponse.redirect(loginUrl);
+    }
+  }
+
+  return NextResponse.next();
+}
 
 export const config = {
   matcher: [
     '/admin/:path*',
-    '/coach/:path*',
+    '/coach/:path*', 
     '/sessions',
     '/session/:path*',
   ],

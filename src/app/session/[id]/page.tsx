@@ -32,8 +32,7 @@ export default async function SessionPage({ params }: SessionPageProps) {
         include: {
           user: { select: { id: true, name: true, avatar: true } }
         }
-      },
-      media: true
+      }
     }
   });
 

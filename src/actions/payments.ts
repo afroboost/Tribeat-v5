@@ -2,12 +2,13 @@
 
 /**
  * Server Actions - Gestion des Paiements
- * CRUD + préparation API Stripe/TWINT
+ * SÉCURISÉ: Vérification admin dans chaque action critique
  */
 
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { TransactionStatus, TransactionProvider } from '@prisma/client';
+import { requireAdmin, requireAuth, logAdminAction } from '@/lib/auth-helpers';
 
 interface ActionResult {
   success: boolean;
@@ -16,13 +17,20 @@ interface ActionResult {
 }
 
 /**
- * Récupérer toutes les transactions
+ * Récupérer toutes les transactions (ADMIN ONLY)
  */
 export async function getTransactions(): Promise<ActionResult> {
+  const auth = await requireAdmin();
+  if (!auth.isAdmin) {
+    return { success: false, error: auth.error };
+  }
+
   try {
     const transactions = await prisma.transaction.findMany({
       include: {
         user: { select: { id: true, name: true, email: true } },
+        offer: { select: { id: true, name: true } },
+        userAccess: { select: { id: true, status: true } },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -34,28 +42,40 @@ export async function getTransactions(): Promise<ActionResult> {
 }
 
 /**
- * Créer une transaction manuelle (lien de paiement)
+ * Créer une transaction manuelle (ADMIN ONLY)
  */
 export async function createManualTransaction(
   userId: string,
   amount: number,
   currency: string = 'CHF',
-  provider: TransactionProvider = 'MANUAL',
+  offerId?: string,
   metadata?: Record<string, unknown>
 ): Promise<ActionResult> {
+  const auth = await requireAdmin();
+  if (!auth.isAdmin) {
+    return { success: false, error: auth.error };
+  }
+
   try {
     const transaction = await prisma.transaction.create({
       data: {
         userId,
-        amount: Math.round(amount * 100), // Convertir en centimes
+        offerId: offerId || null,
+        amount: Math.round(amount * 100),
         currency,
-        provider,
+        provider: 'MANUAL',
         status: 'PENDING',
         metadata: metadata ? JSON.stringify(metadata) : undefined,
       },
       include: {
         user: { select: { id: true, name: true, email: true } },
       },
+    });
+
+    logAdminAction('CREATE_MANUAL_TRANSACTION', auth.userId!, {
+      transactionId: transaction.id,
+      userId,
+      amount,
     });
 
     revalidatePath('/admin/payments');
@@ -67,13 +87,77 @@ export async function createManualTransaction(
 }
 
 /**
- * Mettre à jour le statut d'une transaction
+ * Valider une transaction manuelle et créer l'accès (ADMIN ONLY)
+ */
+export async function validateManualTransaction(
+  transactionId: string
+): Promise<ActionResult> {
+  const auth = await requireAdmin();
+  if (!auth.isAdmin) {
+    return { success: false, error: auth.error };
+  }
+
+  try {
+    const transaction = await prisma.transaction.findUnique({
+      where: { id: transactionId },
+      include: { offer: true, userAccess: true },
+    });
+
+    if (!transaction) {
+      return { success: false, error: 'Transaction non trouvée' };
+    }
+
+    if (transaction.status !== 'PENDING') {
+      return { success: false, error: 'Transaction déjà traitée' };
+    }
+
+    // Mettre à jour la transaction
+    await prisma.transaction.update({
+      where: { id: transactionId },
+      data: { status: 'COMPLETED' },
+    });
+
+    // Créer l'accès si pas existant
+    if (!transaction.userAccess) {
+      await prisma.userAccess.create({
+        data: {
+          userId: transaction.userId,
+          offerId: transaction.offerId,
+          sessionId: transaction.offer?.sessionId || null,
+          transactionId: transactionId,
+          status: 'ACTIVE',
+          grantedAt: new Date(),
+        },
+      });
+    }
+
+    logAdminAction('VALIDATE_MANUAL_TRANSACTION', auth.userId!, {
+      transactionId,
+      userId: transaction.userId,
+    });
+
+    revalidatePath('/admin/payments');
+    revalidatePath('/admin/access');
+    return { success: true };
+  } catch (error) {
+    console.error('Error validating transaction:', error);
+    return { success: false, error: 'Erreur lors de la validation' };
+  }
+}
+
+/**
+ * Mettre à jour le statut d'une transaction (ADMIN ONLY)
  */
 export async function updateTransactionStatus(
   transactionId: string,
   status: TransactionStatus,
   providerTxId?: string
 ): Promise<ActionResult> {
+  const auth = await requireAdmin();
+  if (!auth.isAdmin) {
+    return { success: false, error: auth.error };
+  }
+
   try {
     const transaction = await prisma.transaction.update({
       where: { id: transactionId },
@@ -81,6 +165,11 @@ export async function updateTransactionStatus(
         status,
         ...(providerTxId && { providerTxId }),
       },
+    });
+
+    logAdminAction('UPDATE_TRANSACTION_STATUS', auth.userId!, {
+      transactionId,
+      newStatus: status,
     });
 
     revalidatePath('/admin/payments');
@@ -92,13 +181,20 @@ export async function updateTransactionStatus(
 }
 
 /**
- * Supprimer une transaction
+ * Supprimer une transaction (ADMIN ONLY)
  */
 export async function deleteTransaction(transactionId: string): Promise<ActionResult> {
+  const auth = await requireAdmin();
+  if (!auth.isAdmin) {
+    return { success: false, error: auth.error };
+  }
+
   try {
     await prisma.transaction.delete({
       where: { id: transactionId },
     });
+
+    logAdminAction('DELETE_TRANSACTION', auth.userId!, { transactionId });
 
     revalidatePath('/admin/payments');
     return { success: true };
@@ -109,59 +205,14 @@ export async function deleteTransaction(transactionId: string): Promise<ActionRe
 }
 
 /**
- * Créer un lien de paiement Stripe (préparation)
- * Note: Nécessite STRIPE_SECRET_KEY configuré
- */
-export async function createStripePaymentLink(
-  userId: string,
-  amount: number,
-  description: string
-): Promise<ActionResult> {
-  try {
-    const stripeKey = process.env.STRIPE_SECRET_KEY;
-    
-    if (!stripeKey) {
-      // Mode dégradé : créer une transaction manuelle
-      return createManualTransaction(userId, amount, 'CHF', 'STRIPE', {
-        description,
-        mode: 'manual_link',
-      });
-    }
-
-    // TODO: Intégration Stripe réelle
-    // const stripe = new Stripe(stripeKey);
-    // const session = await stripe.checkout.sessions.create({...});
-    
-    // Pour l'instant, créer une transaction en attente
-    const transaction = await prisma.transaction.create({
-      data: {
-        userId,
-        amount: Math.round(amount * 100),
-        currency: 'CHF',
-        provider: 'STRIPE',
-        status: 'PENDING',
-        metadata: JSON.stringify({ description, mode: 'api_pending' }),
-      },
-    });
-
-    revalidatePath('/admin/payments');
-    return { 
-      success: true, 
-      data: {
-        transaction,
-        message: 'Transaction créée. Configurez STRIPE_SECRET_KEY pour activer les paiements automatiques.',
-      },
-    };
-  } catch (error) {
-    console.error('Error creating Stripe payment:', error);
-    return { success: false, error: 'Erreur lors de la création du paiement Stripe' };
-  }
-}
-
-/**
- * Statistiques des paiements
+ * Statistiques des paiements (ADMIN ONLY)
  */
 export async function getPaymentStats(): Promise<ActionResult> {
+  const auth = await requireAdmin();
+  if (!auth.isAdmin) {
+    return { success: false, error: auth.error };
+  }
+
   try {
     const [total, pending, completed, failed] = await Promise.all([
       prisma.transaction.aggregate({ _sum: { amount: true } }),

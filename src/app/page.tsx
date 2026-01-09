@@ -76,11 +76,15 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Footer */}
+      {/* Footer - Lien admin secret via copyright */}
       <footer className="py-8 text-center">
-        <p className="text-sm text-gray-400 dark:text-gray-600">
+        <a 
+          href="/admin" 
+          className="text-sm text-gray-400 dark:text-gray-600 hover:text-gray-500 dark:hover:text-gray-500 cursor-default"
+          data-testid="ghost-admin-link"
+        >
           © 2025 Tribeat
-        </p>
+        </a>
       </footer>
     </div>
   );

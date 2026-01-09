@@ -1,47 +1,38 @@
 /**
- * Liste des Sessions - Production
+ * Liste des Sessions
  */
 
 import { getAuthSession } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, Users, Play, Clock } from 'lucide-react';
 
-// FORCE DYNAMIC
-export const dynamic = 'force-dynamic';
-
 export default async function SessionsPage() {
   const session = await getAuthSession();
 
+  // Si pas de session, le middleware redirige déjà
   if (!session) {
-    redirect('/auth/login?callbackUrl=/sessions');
+    return null;
   }
 
-  let sessions: any[] = [];
-  
-  try {
-    sessions = await prisma.session.findMany({
-      where: {
-        OR: [
-          { status: 'LIVE' },
-          { status: 'SCHEDULED' },
-          { participants: { some: { userId: session.user.id } } },
-          { coachId: session.user.id }
-        ]
-      },
-      include: {
-        coach: { select: { name: true } },
-        _count: { select: { participants: true } }
-      },
-      orderBy: [{ status: 'asc' }, { scheduledAt: 'asc' }]
-    });
-  } catch (e) {
-    console.error('DB Error:', e);
-  }
+  const sessions = await prisma.session.findMany({
+    where: {
+      OR: [
+        { status: 'LIVE' },
+        { status: 'SCHEDULED' },
+        { participants: { some: { userId: session.user.id } } },
+        { coachId: session.user.id }
+      ]
+    },
+    include: {
+      coach: { select: { name: true } },
+      _count: { select: { participants: true } }
+    },
+    orderBy: [{ status: 'asc' }, { scheduledAt: 'asc' }]
+  }).catch(() => []);
 
   const statusLabels: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
     LIVE: { label: 'En direct', variant: 'destructive' },
@@ -51,7 +42,7 @@ export default async function SessionsPage() {
   };
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#f9fafb' }}>
+    <div className="min-h-screen bg-gray-50">
       <header className="bg-white border-b border-gray-200">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <div>
@@ -63,8 +54,6 @@ export default async function SessionsPage() {
       </header>
 
       <main className="container mx-auto px-4 py-8">
-        
-        
         {sessions.length === 0 ? (
           <Card className="max-w-lg mx-auto text-center">
             <CardHeader>

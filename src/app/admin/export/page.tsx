@@ -1,20 +1,20 @@
 /**
  * Page Admin - Export de Données
- * Export CSV/JSON des données principales
  */
 
 import { ExportPanel } from '@/components/admin/ExportPanel';
 
+// FORCE DYNAMIC
+export const dynamic = 'force-dynamic';
+
 export default async function AdminExportPage() {
   return (
     <div className="space-y-6">
+      <h1 style={{ color: 'red', fontSize: '24px', fontWeight: 'bold' }}>RENDER OK — EXPORT</h1>
+      
       <div>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-          📥 Export de Données
-        </h1>
-        <p className="mt-2 text-gray-600 dark:text-gray-400">
-          Exportez vos données au format CSV ou JSON.
-        </p>
+        <h2 className="text-3xl font-bold text-gray-900">📥 Export de Données</h2>
+        <p className="mt-2 text-gray-600">Exportez vos données au format CSV ou JSON.</p>
       </div>
 
       <ExportPanel />

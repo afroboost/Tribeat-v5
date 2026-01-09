@@ -1,36 +1,45 @@
 /**
  * Admin - Gestion des Accès
- * CRUD complet pour gérer les accès utilisateurs aux sessions
  */
 
 import { getAccesses } from '@/actions/access';
 import { prisma } from '@/lib/prisma';
 import { AccessManager } from '@/components/admin/AccessManager';
 
-export default async function AccessPage() {
-  const [accessesResult, sessions, users] = await Promise.all([
-    getAccesses(),
-    prisma.session.findMany({
-      select: { id: true, title: true, status: true },
-      orderBy: { createdAt: 'desc' },
-    }),
-    prisma.user.findMany({
-      select: { id: true, name: true, email: true, role: true },
-      orderBy: { name: 'asc' },
-    }),
-  ]);
+// FORCE DYNAMIC
+export const dynamic = 'force-dynamic';
 
-  const accesses = accessesResult.success ? (accessesResult.data as any[]) : [];
+export default async function AccessPage() {
+  let accesses: any[] = [];
+  let sessions: any[] = [];
+  let users: any[] = [];
+
+  try {
+    const [accessesResult, sessionsData, usersData] = await Promise.all([
+      getAccesses(),
+      prisma.session.findMany({
+        select: { id: true, title: true, status: true },
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.user.findMany({
+        select: { id: true, name: true, email: true, role: true },
+        orderBy: { name: 'asc' },
+      }),
+    ]);
+    accesses = accessesResult.success ? (accessesResult.data as any[]) : [];
+    sessions = sessionsData;
+    users = usersData;
+  } catch (e) {
+    console.error('DB Error:', e);
+  }
 
   return (
     <div className="space-y-6">
+      <h1 style={{ color: 'red', fontSize: '24px', fontWeight: 'bold' }}>RENDER OK — ACCESS</h1>
+      
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-          Gestion des Accès
-        </h1>
-        <p className="text-gray-500 dark:text-gray-400">
-          Gérez les accès des utilisateurs aux sessions
-        </p>
+        <h2 className="text-2xl font-bold text-gray-900">Gestion des Accès</h2>
+        <p className="text-gray-500">Gérez les accès des utilisateurs aux sessions</p>
       </div>
 
       <AccessManager 

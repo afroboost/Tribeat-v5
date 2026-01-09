@@ -4,7 +4,7 @@
     "critical": [
       {
         "endpoint": "/api/auth/*",
-        "issue": "All NextAuth API routes return 520 'Web server returned an unknown error' when accessed via external URL (https://tribeat-live-1.preview.emergentagent.com). Works locally via localhost:3000.",
+        "issue": "All NextAuth API routes return 520 'Web server returned an unknown error' when accessed via external URL (https://coach-session-1.preview.emergentagent.com). Works locally via localhost:3000.",
         "priority": "CRITICAL"
       }
     ],
@@ -106,7 +106,7 @@
     }
   ],
   "environment_notes": {
-    "external_preview_url": "https://tribeat-live-1.preview.emergentagent.com",
+    "external_preview_url": "https://coach-session-1.preview.emergentagent.com",
     "local_testing_url": "http://localhost:3000",
     "nextjs_server": "Running via supervisor (nextjs process)",
     "database": "SQLite (file:./dev.db) with Prisma",

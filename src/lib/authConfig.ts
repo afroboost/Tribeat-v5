@@ -3,7 +3,7 @@
  * Compatible Vercel / Proxy / TypeScript strict
  */
 
-import { AuthOptions } from 'next-auth';
+import type { AuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { PrismaAdapter } from '@next-auth/prisma-adapter';
 import { prisma } from '@/lib/prisma';
@@ -60,7 +60,7 @@ export const authOptions: AuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
-          throw new Error('Identifiants manquants');
+          throw new Error('Missing credentials');
         }
 
         const user = await prisma.user.findUnique({
@@ -68,16 +68,16 @@ export const authOptions: AuthOptions = {
         });
 
         if (!user || !user.password) {
-          throw new Error('Email ou mot de passe incorrect');
+          throw new Error('Invalid email or password');
         }
 
-        const isValid = await bcrypt.compare(
+        const valid = await bcrypt.compare(
           credentials.password,
           user.password
         );
 
-        if (!isValid) {
-          throw new Error('Email ou mot de passe incorrect');
+        if (!valid) {
+          throw new Error('Invalid email or password');
         }
 
         return {
@@ -85,7 +85,7 @@ export const authOptions: AuthOptions = {
           email: user.email,
           name: user.name,
           role: user.role,
-        };
+        } as any;
       },
     }),
   ],
@@ -93,20 +93,20 @@ export const authOptions: AuthOptions = {
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.id = user.id;
+        token.id = (user as any).id;
         token.email = user.email;
         token.name = user.name;
-        token.role = user.role;
+        token.role = (user as any).role;
       }
       return token;
     },
 
     async session({ session, token }) {
-      if (session.user && token) {
-        session.user.id = token.id as string;
-        session.user.email = token.email as string;
-        session.user.name = token.name as string;
-        session.user.role = token.role as string;
+      if (session.user) {
+        (session.user as any).id = token.id;
+        (session.user as any).email = token.email;
+        (session.user as any).name = token.name;
+        (session.user as any).role = token.role;
       }
       return session;
     },

@@ -17,11 +17,11 @@ export default function RootLayout({
   return (
     <html lang="fr">
       <body className={inter.className}>
-        {/* 🔴 BARRE FORCÉE TOUJOURS VISIBLE */}
+        {/* 🔴 BARRE GLOBALE TOUJOURS VISIBLE */}
         <div
           style={{
             padding: '10px 14px',
-            background: '#000',
+            background: '#111',
             color: 'white',
             display: 'flex',
             justifyContent: 'space-between',

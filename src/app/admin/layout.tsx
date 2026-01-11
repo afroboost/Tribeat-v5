@@ -1,10 +1,4 @@
-'use client';
-
-import { signOut } from 'next-auth/react';
-import { Inter } from 'next/font/google';
 import '../globals.css';
-
-const inter = Inter({ subsets: ['latin'] });
 
 export default function AdminLayout({
   children,
@@ -13,39 +7,36 @@ export default function AdminLayout({
 }) {
   return (
     <html lang="fr">
-      <body className={inter.className}>
-        {/* 🔴 BARRE ADMIN FIXE */}
+      <body>
+        {/* BARRE ADMIN ULTRA SIMPLE */}
         <div
           style={{
-            padding: '12px 16px',
+            padding: '12px',
             background: '#000',
-            color: 'white',
+            color: '#fff',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            fontSize: 14,
             fontWeight: 'bold',
           }}
         >
           <span>ADMIN</span>
 
-          <button
-            onClick={() =>
-              signOut({
-                redirect: true,
-                callbackUrl: '/login',
-              })
-            }
-            style={{
-              padding: '6px 12px',
-              background: 'red',
-              color: 'white',
-              borderRadius: 6,
-              cursor: 'pointer',
-            }}
-          >
-            SE DÉCONNECTER
-          </button>
+          {/* ✅ LOGOUT OFFICIEL NEXTAUTH */}
+          <form action="/api/auth/signout" method="POST">
+            <button
+              type="submit"
+              style={{
+                padding: '6px 12px',
+                background: 'red',
+                color: 'white',
+                borderRadius: '4px',
+                cursor: 'pointer',
+              }}
+            >
+              SE DÉCONNECTER
+            </button>
+          </form>
         </div>
 
         {children}

@@ -1,12 +1,9 @@
 'use client';
 
 /**
- * Sessions Page (SIMPLE)
- * - Affiche l’état connecté
- * - Bouton LOGOUT qui fonctionne
- * - Pas de Prisma
- * - Pas de SSR
- * - Juste pour VALIDER L’AUTH
+ * Sessions Page — VERSION SIMPLE ET CORRECTE
+ * - Bouton ACCUEIL supprimé
+ * - VRAI bouton SE DÉCONNECTER
  */
 
 import { useSession, signOut } from 'next-auth/react';
@@ -29,20 +26,26 @@ export default function SessionsPage() {
         <div>
           <h1 className="text-2xl font-bold">Sessions</h1>
           <p className="text-gray-500">
-            Bienvenue, {session.user?.email}
+            Connecté : {session.user?.email}
           </p>
         </div>
 
+        {/* 🔴 LE SEUL BOUTON AUTORISÉ */}
         <Button
-          variant="outline"
-          onClick={() => signOut({ callbackUrl: '/auth/login' })}
+          variant="destructive"
+          onClick={() =>
+            signOut({
+              redirect: true,
+              callbackUrl: '/login',
+            })
+          }
         >
           Se déconnecter
         </Button>
       </div>
 
       <div className="border rounded-lg p-10 text-center text-gray-500">
-        Aucune session disponible
+        Liste des sessions
       </div>
     </div>
   );

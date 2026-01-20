@@ -126,11 +126,21 @@ export function useLiveSession(options: UseLiveSessionOptions): UseLiveSessionRe
   // ========================================
   
   useEffect(() => {
-    let channel: PresenceChannel;
+    let channel: PresenceChannel | null = null;
     
     const connectPusher = async () => {
       try {
         const pusher = getPusherClient();
+        
+        // Si Pusher n'est pas configuré, on simule une connexion locale
+        if (!pusher) {
+          console.warn('[LIVE] Pusher non configuré - mode hors-ligne');
+          setIsConnected(true);
+          setConnectionError(null);
+          refreshState();
+          return;
+        }
+        
         const channelName = getChannelName(sessionId);
         
         console.log('[LIVE] Connexion à', channelName);

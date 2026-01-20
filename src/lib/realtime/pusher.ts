@@ -7,6 +7,7 @@
  * SÉCURITÉ:
  * - Auth obligatoire sur channels presence
  * - Vérification rôle COACH pour émission
+ * - Graceful fallback si non configuré
  */
 
 import Pusher from 'pusher';
@@ -24,29 +25,55 @@ const config = {
 };
 
 // ========================================
+// HELPERS
+// ========================================
+
+export function isPusherConfigured(): boolean {
+  return !!(
+    config.appId && 
+    config.key && 
+    config.secret &&
+    config.appId !== 'placeholder-app-id' &&
+    config.key !== 'placeholder-key' &&
+    config.secret !== 'placeholder-secret'
+  );
+}
+
+// ========================================
 // SERVER-SIDE PUSHER
 // ========================================
 
 let _pusherServer: Pusher | null = null;
 
 export function getPusherServer(): Pusher {
-  if (!config.appId || !config.key || !config.secret) {
-    throw new Error(
-      'Pusher non configuré. Définissez PUSHER_APP_ID, NEXT_PUBLIC_PUSHER_KEY, PUSHER_SECRET'
-    );
+  if (!isPusherConfigured()) {
+    // Retourne un mock qui ne fait rien mais ne crash pas
+    console.warn('[Pusher] Non configuré - événements ignorés');
+    return {
+      trigger: async () => ({}),
+      authorizeChannel: () => ({ auth: 'mock', channel_data: '{}' }),
+    } as unknown as Pusher;
   }
   
-  if (!_pusherServer) {
-    _pusherServer = new Pusher({
-      appId: config.appId,
-      key: config.key,
-      secret: config.secret,
-      cluster: config.cluster,
-      useTLS: true,
-    });
+  try {
+    if (!_pusherServer) {
+      _pusherServer = new Pusher({
+        appId: config.appId,
+        key: config.key,
+        secret: config.secret,
+        cluster: config.cluster,
+        useTLS: true,
+      });
+    }
+    return _pusherServer;
+  } catch (error) {
+    console.error('[Pusher] Erreur initialisation serveur:', error);
+    // Retourne un mock en cas d'erreur
+    return {
+      trigger: async () => ({}),
+      authorizeChannel: () => ({ auth: 'mock', channel_data: '{}' }),
+    } as unknown as Pusher;
   }
-  
-  return _pusherServer;
 }
 
 // ========================================
@@ -55,45 +82,43 @@ export function getPusherServer(): Pusher {
 
 let _pusherClient: PusherClient | null = null;
 
-export function getPusherClient(): PusherClient {
+export function getPusherClient(): PusherClient | null {
   if (typeof window === 'undefined') {
-    throw new Error('getPusherClient ne peut être appelé que côté client');
+    return null;
   }
   
-  if (!config.key) {
-    throw new Error('Pusher non configuré. Définissez NEXT_PUBLIC_PUSHER_KEY');
+  if (!isPusherConfigured()) {
+    console.warn('[Pusher] Client non configuré - temps réel désactivé');
+    return null;
   }
   
-  if (!_pusherClient) {
-    _pusherClient = new PusherClient(config.key, {
-      cluster: config.cluster,
-      authEndpoint: '/api/pusher/auth',
-      forceTLS: true,
-    });
+  try {
+    if (!_pusherClient) {
+      _pusherClient = new PusherClient(config.key, {
+        cluster: config.cluster,
+        authEndpoint: '/api/pusher/auth',
+        forceTLS: true,
+      });
+      
+      // Debug logging
+      _pusherClient.connection.bind('connected', () => {
+        console.log('[Pusher] Connecté - Socket ID:', _pusherClient?.connection.socket_id);
+      });
+      
+      _pusherClient.connection.bind('error', (err: Error) => {
+        console.error('[Pusher] Erreur connexion:', err);
+      });
+      
+      _pusherClient.connection.bind('disconnected', () => {
+        console.log('[Pusher] Déconnecté');
+      });
+    }
     
-    // Debug logging
-    _pusherClient.connection.bind('connected', () => {
-      console.log('[Pusher] Connecté - Socket ID:', _pusherClient?.connection.socket_id);
-    });
-    
-    _pusherClient.connection.bind('error', (err: Error) => {
-      console.error('[Pusher] Erreur connexion:', err);
-    });
-    
-    _pusherClient.connection.bind('disconnected', () => {
-      console.log('[Pusher] Déconnecté');
-    });
+    return _pusherClient;
+  } catch (error) {
+    console.error('[Pusher] Erreur initialisation client:', error);
+    return null;
   }
-  
-  return _pusherClient;
-}
-
-// ========================================
-// HELPERS
-// ========================================
-
-export function isPusherConfigured(): boolean {
-  return !!(config.appId && config.key && config.secret);
 }
 
 export function getChannelName(sessionId: string): string {

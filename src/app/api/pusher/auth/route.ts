@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
       user_info: {
         name: session.user.name || 'Utilisateur',
         role: userRole,
-        avatar: session.user.avatar || null,
+        avatar: (session.user as any).avatar || null,
       },
     };
     

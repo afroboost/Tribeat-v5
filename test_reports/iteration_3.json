@@ -9,7 +9,7 @@
     "integration_issues": [
       {
         "flow": "External URL Authentication",
-        "issue": "Login via external URL (https://coach-session-1.preview.emergentagent.com) returns 520 error - same issue from iteration 2. Works correctly via localhost.",
+        "issue": "Login via external URL (https://nextjs-config.preview.emergentagent.com) returns 520 error - same issue from iteration 2. Works correctly via localhost.",
         "affected_selectors": []
       }
     ],
@@ -117,7 +117,7 @@
     "Pusher": "In simulation mode - placeholder keys configured. Real-time events logged to console instead of being broadcast."
   },
   "environment_notes": {
-    "external_preview_url": "https://coach-session-1.preview.emergentagent.com",
+    "external_preview_url": "https://nextjs-config.preview.emergentagent.com",
     "local_testing_url": "http://localhost:3000",
     "nextjs_server": "Running via supervisor",
     "database": "SQLite (file:./dev.db) with Prisma",

@@ -6,10 +6,11 @@
  * - VRAI bouton SE DÉCONNECTER
  */
 
+import { Suspense } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 
-export default function SessionsPage() {
+function SessionsContent() {
   const { data: session, status } = useSession();
 
   if (status === 'loading') {
@@ -48,5 +49,13 @@ export default function SessionsPage() {
         Liste des sessions
       </div>
     </div>
+  );
+}
+
+export default function SessionsPage() {
+  return (
+    <Suspense fallback={<p className="p-6">Chargement…</p>}>
+      <SessionsContent />
+    </Suspense>
   );
 }

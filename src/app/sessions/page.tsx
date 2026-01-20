@@ -7,7 +7,7 @@
  */
 
 import { Suspense } from 'react';
-import { useSession, signOut } from 'next-auth/react';
+import { SessionProvider, useSession, signOut } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 
 function SessionsContent() {

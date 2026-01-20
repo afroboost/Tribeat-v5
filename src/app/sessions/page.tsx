@@ -54,8 +54,10 @@ function SessionsContent() {
 
 export default function SessionsPage() {
   return (
-    <Suspense fallback={<p className="p-6">Chargement…</p>}>
-      <SessionsContent />
-    </Suspense>
+    <SessionProvider>
+      <Suspense fallback={<p className="p-6">Chargement…</p>}>
+        <SessionsContent />
+      </Suspense>
+    </SessionProvider>
   );
 }

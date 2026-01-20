@@ -266,7 +266,9 @@ export function useLiveSession(options: UseLiveSessionOptions): UseLiveSessionRe
       if (channel) {
         channel.unbind_all();
         const pusher = getPusherClient();
-        pusher.unsubscribe(getChannelName(sessionId));
+        if (pusher) {
+          pusher.unsubscribe(getChannelName(sessionId));
+        }
       }
       channelRef.current = null;
     };
